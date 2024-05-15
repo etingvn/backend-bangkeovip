@@ -1,0 +1,39 @@
+version: "3.4"
+
+services:
+  app:
+    image: amplifier-data-bangkeo
+    volumes:
+      - ./public/images:/app/public/images
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_NAME=${DB_NAME}
+      - DB_PORT=${DB_PORT}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - PORT=${PORT}
+    ports:
+      - "${PORT}:${PORT}"
+    restart: unless-stopped
+    depends_on:
+        - redis
+        - db
+  
+  db:
+      image: mongo
+      volumes:
+        - .docker/data/db:/data/db
+      # restart: unless-stopped
+      # user: "501:20"
+      ports:
+      - "${DB_PORT}:${DB_PORT}"
+      
+  redis:
+      image: redis:5-alpine
+      volumes:
+        - .docker/data/redis:/data
+      # restart: unless-stopped
+      # user: "501:20"
+      ports:
+      - "${REDIS_PORT}:${REDIS_PORT}"
+
