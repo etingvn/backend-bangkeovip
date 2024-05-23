@@ -7,18 +7,27 @@
 var app = require('../app')
 var debug = require('debug')('docker-node-mongo-redis:server')
 var http = require('http')
+var fs = require('fs');
+
 
 /**
  * Get port from environment and store in Express.
  */
-
-var port = normalizePort(process.env.PORT || '3000')
+const ENV = 'localhost';
+var port = normalizePort(process.env.HTTPS_PORT || '80')
 app.set('port', port)
 
 /**
  * Create HTTP server.
  */
 
+// Đọc private key và certificate
+const privateKey = fs.readFileSync('./bin/' + ENV + '/key.pem', 'utf8');
+const certificate = fs.readFileSync('./bin/' + ENV + '/cert.pem', 'utf8');
+
+const credentials = { key: privateKey, cert: certificate };
+
+// Sử dụng HTTPS server
 var server = http.createServer(app)
 
 /**

@@ -14,6 +14,8 @@ services:
       - PORT=${PORT}
     ports:
       - "${PORT}:${PORT}"
+      - 8080:8080
+      - 80:80
     restart: unless-stopped
     depends_on:
         - redis
@@ -23,7 +25,7 @@ services:
       image: mongo
       volumes:
         - .docker/data/db:/data/db
-      # restart: unless-stopped
+      restart: unless-stopped
       # user: "501:20"
       ports:
       - "${DB_PORT}:${DB_PORT}"
@@ -32,7 +34,7 @@ services:
       image: redis:5-alpine
       volumes:
         - .docker/data/redis:/data
-      # restart: unless-stopped
+      restart: unless-stopped
       # user: "501:20"
       ports:
       - "${REDIS_PORT}:${REDIS_PORT}"

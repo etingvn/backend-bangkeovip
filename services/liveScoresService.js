@@ -1,23 +1,20 @@
-const Events = require('../models/eventsModel');
+const LiveScores = require('../models/livescoresModel');
 const axios = require('axios');
 const url = require('url');
 const Redis = require('ioredis');
-const { format, addDays, subDays } = require('date-fns');
 
-class EventsService {
+class LiveScoresService {
     constructor() {
         // Khởi tạo các tài nguyên cần thiết
     }
 
-    events = async (query) => {
+    liveScores = async (query) => {
         const redis = new Redis({ host: process.env.REDIS_HOST, port: 6379 });
         const queryObject = query;
-        const currentDate = new Date();
-        const formattedCurrentDate = format(currentDate, 'yyyy-MM-dd');
 
         try {
             // Gọi data từ cache Redis
-            const keyList = await redis.keys(`Events:realtime:*`);
+            const keyList = await redis.keys(`LiveScores:realtime:*`);
             const valueList = await redis.mget(...keyList);
             const result = [];
             for (const item of valueList) {
@@ -33,4 +30,4 @@ class EventsService {
     }
 }
 
-module.exports = EventsService;
+module.exports = LiveScoresService;

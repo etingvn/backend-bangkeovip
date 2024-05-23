@@ -5,5 +5,5 @@ const dynamicSchema = new mongoose.Schema({
   data: { type: mongoose.Schema.Types.Mixed }
   
 });
-const Events = mongoose.model('Events', dynamicSchema);
-module.exports = Events;
+const Livescores = mongoose.model('Livescores', dynamicSchema);
+module.exports = Livescores;

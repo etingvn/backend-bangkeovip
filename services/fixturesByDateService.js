@@ -9,7 +9,7 @@ class FixturesByDateService {
     }
 
     fixturesByDate = async (query) => {
-        const redis = new Redis({ host: 'redis', port: 6379 });
+        const redis = new Redis({ host: process.env.REDIS_HOST, port: 6379 });
         const queryObject = query;
         const optionsRapidApi = {
             method: 'GET',

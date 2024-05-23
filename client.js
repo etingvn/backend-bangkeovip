@@ -1,7 +1,8 @@
 // client.js
 const WebSocket = require('ws');
 
-const ws = new WebSocket('ws://ec2-18-232-186-210.compute-1.amazonaws.com:8080');
+// const ws = new WebSocket('ws://ec2-18-232-186-210.compute-1.amazonaws.com:8080');
+const ws = new WebSocket('ws://localhost:8080');
 
 // Gửi thông điệp chứa các tham số cho server
 ws.on('open', () => {
@@ -43,14 +44,24 @@ ws.on('open', () => {
     // });
 
     // const message = JSON.stringify({
-    //     routes: 'in-play-odds',
-    //     params: { matchId: '292362529' }
+    //     routes: 'live-odds',
+    //     params: { matchId: '372499326' }
+    // });
+
+    // const message = JSON.stringify({
+    //     routes: 'livescores',
+    //     params: { matchId: '363747524' }
     // });
 
     const message = JSON.stringify({
         routes: 'events',
-        params: { matchId: '1676841' }
+        params: { matchId: '212811520' }
     });
+
+    // const message = JSON.stringify({
+    //     routes: 'statistics',
+    //     params: { matchId: '212811520' }
+    // });
 
     // const message = JSON.stringify({
     //     routes: 'fixtures-all-by-date',

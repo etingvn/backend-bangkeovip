@@ -2,24 +2,34 @@ const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const runCronJob = require('./cronJob');
+const fs = require('fs');
+
+const runCronJobOneDay = require('./runCronJobOneDay');
+const runCronJob20Seconds = require('./runCronJob20Seconds');
 const userRoutes = require('./routes/userRoutes');
 const fixtureheadtoheadRoutes = require('./routes/fixtureheadtoheadRoutes');
+const fixturesallbydateRoutes = require('./routes/fixturesallbydateRoutes');
+const leaguestandingRoutes = require('./routes/leaguestandingRoutes');
+const eventsRoutes = require('./routes/eventsRoutes');
 const FixturesHeadToHeadService = require('./services/fixturesHeadToHeadService');
 const FixturesByDateService = require('./services/fixturesByDateService');
+const LeagueStandingService = require('./services/leagueStandingService');
 const LeaguesBySeasonService = require('./services/leaguesBySeasonService');
 const FixturesLineUpsService = require('./services/fixturesLineUpsService');
 const OddsByDateService = require('./services/oddsByDateService');
 const PlayersStatisticsByFixtureIdService = require('./services/playersStatisticsByFixtureIdService');
 const OddsInPlayService = require('./services/oddsInPlayService');
 const FixturesAllByDateService = require('./services/fixturesAllByDateService');
-const InPlayOddsService = require('./services/inPlayOddsService');
+const LiveOddsService = require('./services/liveOddsService');
 const EventsService = require('./services/eventsService');
+const StatisticsService = require('./services/statisticsService');
+const LiveScoresService = require('./services/liveScoresService');
+
 
 const WebSocket = require('ws');
 
-// Khởi tạo server WebSocket
-const wss = new WebSocket.Server({ port: 8080 });
+// Khởi tạo server WebSocket với gioi hạn kích thước payload là 500MB 
+const wss = new WebSocket.Server({ port: 8080, maxPayload: 500 * 1024 * 1024 });
 
 wss.on('connection', (ws) => {
   console.log('Client connected');
@@ -29,10 +39,12 @@ wss.on('connection', (ws) => {
   const fixturesLineUpsService = new FixturesLineUpsService();
   const oddsByDateService = new OddsByDateService();
   const playersStatisticsByFixtureIdService = new PlayersStatisticsByFixtureIdService();
-  const oddsInPlayService = new OddsInPlayService();
   const fixturesAllByDateService = new FixturesAllByDateService();
-  const inPlayOddsService = new InPlayOddsService();
+  const leagueStandingService = new LeagueStandingService();
+  const liveOddsService = new LiveOddsService();
   const eventsService = new EventsService();
+  const statisticsService = new StatisticsService();
+  const livescoresService = new LiveScoresService();
 
   ws.on('message', async (message) => {
     setInterval(async () => {
@@ -49,10 +61,10 @@ wss.on('connection', (ws) => {
             const fixturesByDate = await fixturesByDateService.fixturesByDate(data.params);
             ws.send(JSON.stringify(fixturesByDate));
             break;
-          case 'fixtures-all-by-date':
-            const fixturesAllByDate = await fixturesAllByDateService.fixturesAllByDate(data.params);
-            ws.send(JSON.stringify(fixturesAllByDate));
-            break;
+          // case 'fixtures-all-by-date':
+          //   const fixturesAllByDate = await fixturesAllByDateService.fixturesAllByDate(data.params);
+          //   ws.send(JSON.stringify(fixturesAllByDate));
+          //   break;
           case 'leagues-by-season':
             const leaguesBySeason = await leaguesBySeasonService.leaguesBySeason(data.params);
             ws.send(JSON.stringify(leaguesBySeason));
@@ -73,17 +85,24 @@ wss.on('connection', (ws) => {
             const oddsInPlay = await oddsInPlayService.oddsInPlay(data.params);
             ws.send(JSON.stringify(oddsInPlay));
             break;
-
-          case 'in-play-odds':
-            const inPlayOdds = await inPlayOddsService.inPlayOdds(data.params);
-            ws.send(JSON.stringify(inPlayOdds));
+          case 'live-odds':
+            const liveOdds = await liveOddsService.liveOdds(data.params);
+            ws.send(JSON.stringify(liveOdds));
             break;
-
           case 'events':
-            const events = await eventsService.events(data.params);
+            const events = await eventsService.events(data.params);           
             ws.send(JSON.stringify(events));
-            break;
-  
+            break; 
+
+          case 'statistics':
+            const statistics = await statisticsService.statistics(data.params);  
+            ws.send(JSON.stringify(statistics));         
+            break;       
+        
+          case 'livescores':
+            const livescores = await livescoresService.liveScores(data.params);
+            ws.send(JSON.stringify(livescores));
+            break; 
           default:
             ws.send(JSON.stringify({ error: 'Not found routing' }));
         }
@@ -92,34 +111,50 @@ wss.on('connection', (ws) => {
         console.error('Error:', error);
         ws.send(JSON.stringify({ error: 'Internal server error' }));
     }
-}, 2000);
+}, 10000);
   });
 
-  ws.on('close', () => {
-      console.log('Client disconnected');
-  });
 });
 
-const app = express();
+// Kết nối tới MongoDB
 const dbHost = process.env.DB_HOST || 'localhost'
 const dbPort = process.env.DB_PORT || 27017
 const dbName = process.env.DB_NAME || 'amplifier-data-bangkeo'
 const mongoUrl = `mongodb://${dbHost}:${dbPort}/${dbName}`
-
 mongoose.connect(mongoUrl, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
     autoCreate: true
-  });
+});
 
-  app.use(bodyParser.json());
-  app.use(cors());
+// Kết nối tới Express
+const app = express();
+
+// Middleware tự định nghĩa để thiết lập giới hạn kích thước payload response
+const limitResponseSize = (req, res, next) => {
+  const limit = '500mb'; // 500MB
+  res.setHeader('Content-Length', limit);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+
+  // res.setHeader('Connection', 'close');
+  next();
+}
+
+// Sử dụng middleware limitResponseSize cho tất cả các yêu cầu
+app.use(limitResponseSize); 
+app.use(bodyParser.json());
+app.use(cors({ origin: '*' }));
   
   // Sử dụng routes
   app.use('/users', userRoutes);
-  app.use('/fixtureheadtohead', fixtureheadtoheadRoutes);
+  app.use('/fixtures-head-to-head', fixtureheadtoheadRoutes);
+  app.use('/fixtures-all-by-date', fixturesallbydateRoutes);
+  app.use('/league-standing', leaguestandingRoutes);
+  // app.use('/events', eventsRoutes);
+  
   
   // Sử dụng cronJob
-  runCronJob();
+  runCronJobOneDay();
+  runCronJob20Seconds();
 
 module.exports = app

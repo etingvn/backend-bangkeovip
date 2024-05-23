@@ -9,7 +9,7 @@ class PlayersStatisticsByFixtureIdService {
     }
 
     playersStatisticsByFixtureId = async (query) => {
-        const redis = new Redis({ host: 'redis', port: 6379 });
+        const redis = new Redis({ host: process.env.REDIS_HOST, port: 6379 });
         const queryObject = query;
         const optionsRapidApi = {
             method: 'GET',
@@ -78,7 +78,7 @@ class PlayersStatisticsByFixtureIdService {
 
                     // Gọi data từ cache Redis
                     const keyList = await redis.keys(`PlayersStatisticsByFixtureId:${queryObject.fixture}:*`);
-                    const valueList = (keyList.length === 0) ? [] : await redis.mget(...keyList);
+                    const valueList = await (keyList.length === 0) ? [] : redis.mget(...keyList);
                     return valueList;        
                 } else {
                     // Set data từ database MongoDB vào Cache Redis
@@ -98,7 +98,7 @@ class PlayersStatisticsByFixtureIdService {
 
                     // Gọi data từ cache Redis
                     const keyList = await redis.keys(`PlayersStatisticsByFixtureId:${queryObject.fixture}:*`);
-                    const valueList = (keyList.length === 0) ? [] : await redis.mget(...keyList);
+                    const valueList = await (keyList.length === 0) ? [] : redis.mget(...keyList);
                     return valueList;        
                 }
             } else {
